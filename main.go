@@ -37,7 +37,7 @@ func main() {
 	http.HandleFunc("//rpc/obtainTicket.action", ActivateIdea)
 	http.HandleFunc("//rpc/releaseTicket.action", ActivateIdea)
 	http.HandleFunc("//rpc/prolongTicket.action", ActivateIdea)
-	log.Println("ListenAndServe:"+listen,"server start")
+	log.Println("ListenAndServe:"+listen, "server start")
 	err := http.ListenAndServe(listen, nil) // set listen port
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
@@ -45,7 +45,12 @@ func main() {
 }
 
 func ActivateIdea(writer http.ResponseWriter, request *http.Request) {
-	log.Println(request.Method,request.RemoteAddr,request.URL)
+
+	ip := request.Header.Get("Remote_addr")
+	if ip == "" {
+		ip = request.RemoteAddr
+	}
+	log.Println(request.Method, ip, request.URL)
 	salt := request.FormValue("salt")
 	userName := request.FormValue("userName")
 	ticket := fmt.Sprintf(`<ObtainTicketResponse>
@@ -55,10 +60,10 @@ func ActivateIdea(writer http.ResponseWriter, request *http.Request) {
 	<salt>%s</salt>
 	<ticketId>1</ticketId>
 	<ticketProperties>licensee=%s	licenseType=0	</ticketProperties>
-</ObtainTicketResponse>`,salt, userName)
+</ObtainTicketResponse>`, salt, userName)
 	hashed := md5.Sum([]byte(ticket))
 	sig, _ := rsa.SignPKCS1v15(rand.Reader, pkey, crypto.MD5, hashed[:])
 	resp := fmt.Sprintf("<!-- %x -->\n%s", sig, ticket)
-	writer.Header().Set("Content-Type","text/plain; charset=utf-8")
-	fmt.Fprintf(writer,resp)
+	writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	fmt.Fprintf(writer, resp)
 }
